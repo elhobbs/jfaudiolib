@@ -20,6 +20,10 @@
 
 #include "asssys.h"
 
+#ifdef __NDS__
+#include <nds.h>
+#endif
+
 #ifdef _WIN32
 # define WIN32_LEAN_AND_MEAN
 # include <windows.h>
@@ -48,6 +52,8 @@ void ASS_Sleep(int msec)
 {
 #ifdef _WIN32
 	Sleep(msec);
+#elif defined __NDS__
+
 #else
 	struct timeval tv;
 

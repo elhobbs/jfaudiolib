@@ -51,6 +51,10 @@
 # include "driver_alsa.h"
 #endif
 
+#ifdef __NDS__
+# include "driver_nds.h"
+#endif
+
 int ASS_PCMSoundDriver = -1;
 int ASS_CDSoundDriver = -1;
 int ASS_MIDISoundDriver = -1;
@@ -115,6 +119,39 @@ static struct {
         NoSoundDrv_MIDI_SetTempo,
         NoSoundDrv_MIDI_Lock,
         NoSoundDrv_MIDI_Unlock,
+    },
+
+    // NDS Audio
+    {
+        "NDS Audio",
+    #if defined __NDS__
+        NdsSoundDrv_GetError,
+        NdsSoundDrv_ErrorString,
+        NdsSoundDrv_PCM_Init,
+        NdsSoundDrv_PCM_Shutdown,
+        NdsSoundDrv_PCM_BeginPlayback,
+        NdsSoundDrv_PCM_StopPlayback,
+        NdsSoundDrv_PCM_Lock,
+        NdsSoundDrv_PCM_Unlock,
+        UNSUPPORTED_CD,
+        UNSUPPORTED_MIDI,
+        /*NdsSoundDrv_CD_Init,
+        NdsSoundDrv_CD_Shutdown,
+        NdsSoundDrv_CD_Play,
+        NdsSoundDrv_CD_Stop,
+        NdsSoundDrv_CD_Pause,
+        NdsSoundDrv_CD_IsPlaying,
+        NdsSoundDrv_CD_SetVolume,
+        NdsSoundDrv_MIDI_Init,
+        NdsSoundDrv_MIDI_Shutdown,
+        NdsSoundDrv_MIDI_StartPlayback,
+        NdsSoundDrv_MIDI_HaltPlayback,
+        NdsSoundDrv_MIDI_SetTempo,
+        NdsSoundDrv_MIDI_Lock,
+        NdsSoundDrv_MIDI_Unlock*/
+    #else
+        UNSUPPORTED_COMPLETELY,
+    #endif
     },
 
     // OS X CoreAudio

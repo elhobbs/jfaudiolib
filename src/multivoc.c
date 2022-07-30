@@ -133,6 +133,16 @@ static void RestoreInterrupts(int a)
 	SoundDriver_PCM_Unlock();
 }
 
+static uint16_t read16(uint8_t *ptr) {
+   uint16_t ret = ptr[0] | (ptr[1] << 8);
+   return ret;
+}
+
+static uint32_t read32(uint8_t *ptr) {
+   uint32_t ret = ptr[0] | (ptr[1] << 8) | (ptr[2] << 16) | (ptr[3] << 24);
+   return ret;
+}
+
 
 /*---------------------------------------------------------------------
    Function: MV_ErrorString
@@ -382,7 +392,8 @@ static void MV_ServiceVoc
    VoiceNode *next;
 	//int        flags;
 
-   // Toggle which buffer we'll mix next
+   //printf("\nV_MixPage %d %d\n", MV_MixPage, MV_ReverbLevel);
+  // Toggle which buffer we'll mix next
    MV_MixPage++;
    if ( MV_MixPage >= MV_NumberOfBuffers )
       {
@@ -408,6 +419,7 @@ static void MV_ServiceVoc
       char *dest;
       int   count;
       int   length;
+
 
       end = MV_MixBuffer[ 0 ] + MV_BufferLength;;
       dest = MV_MixBuffer[ MV_MixPage ];
@@ -459,6 +471,7 @@ static void MV_ServiceVoc
    // Play any waiting voices
    //flags = DisableInterrupts();
 	
+   //printf("\nMV_CallBackFunc %08x\n", MV_CallBackFunc);
    for( voice = VoiceList.next; voice != &VoiceList; voice = next )
       {
       if ( voice->Paused )
@@ -467,6 +480,7 @@ static void MV_ServiceVoc
          continue;
          }
       
+      //printf("\nmixing: %d %d\n", voice->callbackval, voice->Playing);
       MV_BufferEmpty[ MV_MixPage ] = FALSE;
 
       MV_MixFunction( voice, MV_MixPage );
@@ -487,6 +501,7 @@ static void MV_ServiceVoc
             }
          }
       }
+      //printf("\ndone mixing: %d %d\n", voice->callbackval, voice->Playing);
 	
    //RestoreInterrupts(flags);
    }
@@ -547,7 +562,7 @@ static playbackstatus MV_GetNextVOCBlock
          }
 
       blocktype = ( int )*ptr;
-      blocklength = LITTLE32( *( unsigned int * )( ptr + 1 ) ) & 0x00ffffff;
+      blocklength = read32( ptr + 1 ) & 0x00ffffff;
       ptr += 4;
 
       switch( blocktype )
@@ -573,11 +588,11 @@ static playbackstatus MV_GetNextVOCBlock
             // Sound data block
             voice->bits  = 8;
             voice->channels = voicemode + 1;
-            if ( lastblocktype != 8 )
-               {
-               tc = ( unsigned int )*ptr << 8;
+           // if ( lastblocktype != 8 )
+           //    {
+               tc = ( unsigned int )*(ptr) << 8;
                packtype = *( ptr + 1 );
-               }
+            //   }
 
             ptr += 2;
             blocklength -= 2;
@@ -624,8 +639,8 @@ static playbackstatus MV_GetNextVOCBlock
             // Repeat begin
             if ( voice->LoopEnd == NULL )
                {
-               voice->LoopCount = LITTLE16(*( unsigned short * )ptr);
-               voice->LoopStart = (char *)((intptr_t) ptr + blocklength);
+               voice->LoopCount = read16(ptr);
+               voice->LoopStart = (char *)(ptr + blocklength);
                }
             ptr += blocklength;
             break;
@@ -658,7 +673,7 @@ static playbackstatus MV_GetNextVOCBlock
             // Extended block
             voice->bits  = 8;
             voice->channels = 1;
-            tc = LITTLE16( *( unsigned short * )ptr );
+            tc = read16( ptr );
             packtype = *( ptr + 2 );
             voicemode = *( ptr + 3 );
             ptr += blocklength;
@@ -666,10 +681,10 @@ static playbackstatus MV_GetNextVOCBlock
 
          case 9 :
             // New sound data block
-            samplespeed = LITTLE32( *( unsigned int * )ptr );
+            samplespeed = read32( ptr );
             BitsPerSample = ( unsigned )*( ptr + 4 );
             Channels = ( unsigned )*( ptr + 5 );
-            Format = ( unsigned )LITTLE16( *( unsigned short * )( ptr + 6 ) );
+            Format = ( unsigned )read16( ptr + 6 );
 
             if ( ( BitsPerSample == 8 ) && ( Channels == 1 || Channels == 2 ) &&
                ( Format == VOC_8BIT ) )
@@ -2616,7 +2631,7 @@ int MV_PlayLoopedVOC
    voice->bits        = 8;
    voice->channels    = 1;
    voice->GetSound    = MV_GetNextVOCBlock;
-   voice->NextBlock   = ptr + LITTLE16(*( unsigned short * )( ptr + 0x14 ));
+   voice->NextBlock   = ptr + read16(ptr + 0x14 );
    voice->DemandFeed  = NULL;
    voice->LoopStart   = NULL;
    voice->LoopCount   = 0;
